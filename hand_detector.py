@@ -3,6 +3,8 @@ import mediapipe as mp
 import time
 
 cap = cv2.VideoCapture(0)
+#cap.set(3,320) # set Width
+#cap.set(4,240) # set Height
 
 mpHands = mp.solutions.hands
 hands = mpHands.Hands(static_image_mode=False,
@@ -25,12 +27,12 @@ while True:
             y = 0.
             for id, lm in enumerate(handLms.landmark):
                 #print(id,lm)
-                h, w, c = img.shape
-                cx, cy = int(lm.x *w), int(lm.y*h)
+                #h, w, c = img.shape
+                #cx, cy = int(lm.x *w), int(lm.y*h)
                 x += lm.x
                 y += lm.y
                 #if id ==0:
-                cv2.circle(img, (cx,cy), 3, (255,0,255), cv2.FILLED)
+                #cv2.circle(img, (cx,cy), 3, (255,0,255), cv2.FILLED)
             h, w, c = img.shape
             x = int(x / len(handLms.landmark) * w)
             y = int(y / len(handLms.landmark) * h)
