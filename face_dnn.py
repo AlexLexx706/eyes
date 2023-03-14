@@ -65,9 +65,9 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.7):
             left=y2-y1
 
             #  blurry rectangle to the detected face
-            face = frame[right:right+left, top:top+bottom]
-            face = cv2.GaussianBlur(face,(23, 23), 30)
-            frame[right:right+face.shape[0], top:top+face.shape[1]] = face
+            # face = frame[right:right+left, top:top+bottom]
+            # face = cv2.GaussianBlur(face,(23, 23), 30)
+            # frame[right:right+face.shape[0], top:top+face.shape[1]] = face
 
     return frame, bboxes
 
@@ -79,6 +79,8 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
 detectionEnabled = True
+p_time = time.time()
+
 while True:
     try:
         _, frameOrig = video_capture.read()
@@ -87,6 +89,12 @@ while True:
         if(detectionEnabled == True):
             outOpencvDnn, bboxes = detectFaceOpenCVDnn(net, frame)
 
+
+        c_time = time.time()
+        fps = 1 / (c_time - p_time)
+        p_time = c_time
+
+        cv2.putText(frame, str(int(fps)), (10,70), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 3)
         cv2.imshow('@ElBruno - Face Blur usuing DNN', frame)
 
     except Exception as e:
