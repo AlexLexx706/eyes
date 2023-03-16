@@ -28,7 +28,7 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.7):
             y2 = int(detections[0, 0, i, 6] * frameHeight)
             bboxes.append([x1, y1, x2, y2])
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), int(round(frameHeight / 150)), 8,)
-
+            print((x1, y1))
             top=x1
             right=y1
             bottom=x2-x1

@@ -7,6 +7,9 @@ from adafruit_servokit import ServoKit
 import math
 from multiprocessing import Process, Queue
 import queue
+import logging
+
+LOG = logging.getLogger(__name__)
 
 # Pin Definitons:
 LEFT_LED_PIN = 17
@@ -80,7 +83,7 @@ class ServoSmooth:
         self.__servos_kit.servo[self.__id].angle = int((self.__max - self.__min) * val + self.__min)
 
 
-def camera_and_sound(exit_queue):
+def camera_and_sound(exit_queue, pos_queue):
     #Instantiate mixer
     mixer.init()
     #Load audio file
@@ -88,15 +91,13 @@ def camera_and_sound(exit_queue):
     #Set preferred volume
     mixer.music.set_volume(0.2)
 
-    # faceCascade = cv2.CascadeClassifier('./data/haarcascade_frontalface_alt.xml')
+    model_file = "models/res10_300x300_ssd_iter_140000_fp16.caffemodel"
+    config_file = "models/deploy.prototxt"
 
-    modelFile = "models/res10_300x300_ssd_iter_140000_fp16.caffemodel"
-    configFile = "models/deploy.prototxt"
-    net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+    net = cv2.dnn.readNetFromCaffe(config_file, model_file)
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
     conf_threshold=0.7
-
 
     cap = cv2.VideoCapture(0)
     cap.set(3,640) # set Width
@@ -124,8 +125,12 @@ def camera_and_sound(exit_queue):
                 y1 = int(detections[0, 0, i, 4] * frameHeight)
                 x2 = int(detections[0, 0, i, 5] * frameWidth)
                 y2 = int(detections[0, 0, i, 6] * frameHeight)
-
-                print(f"x:{(x1 + x2) / 2.} y:{(y1 + y2) / 2.}")
+                pos = ((x1 + x2) / 2., (y1 + y2) / 2.)
+                try:
+                    pos_queue.put_nowait(pos)
+                except queue.Full:
+                    LOG.warning('pos queue is full!!')
+                # print(f"xy:{pos}")
                 if not mixer.music.get_busy():
                     mixer.music.play()
 
@@ -145,10 +150,12 @@ def main():
     h_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_HORIZONTAL, 4, 40, 160)
 
     print("Here we go! Press CTRL+C to exit")
-    play = 0
     exit_queue = Queue()
-    camera_and_sound_proc = Process(target=camera_and_sound, args=(exit_queue,))
+    pos_queue = Queue(3)
+    camera_and_sound_proc = Process(target=camera_and_sound, args=(exit_queue, pos_queue))
     camera_and_sound_proc.start()
+
+    cur_pos = (640/2, 480/2)
 
     try:
         while 1:
@@ -169,7 +176,12 @@ def main():
                 servos_kit.continuous_servo[15].throttle = -0.1 # down
 
             # print(f't:{top_btn_state} b:{bottom_btn_state}')
-
+            try:
+                pos = pos_queue.get_nowait()
+                cur_pos = pos
+            except queue.Empty:
+                pass
+            print(cur_pos)
             time.sleep(0.01)
     except KeyboardInterrupt:  # If CTRL+C is pressed, exit cleanly:
         # pwm.stop() # stop PWM

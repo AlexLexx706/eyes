@@ -27,19 +27,19 @@ while True:
             y = 0.
             for id, lm in enumerate(handLms.landmark):
                 #print(id,lm)
-                #h, w, c = img.shape
-                #cx, cy = int(lm.x *w), int(lm.y*h)
+                h, w, c = img.shape
+                cx, cy = int(lm.x *w), int(lm.y*h)
                 x += lm.x
                 y += lm.y
-                #if id ==0:
-                #cv2.circle(img, (cx,cy), 3, (255,0,255), cv2.FILLED)
+                # if id ==0:
+                cv2.circle(img, (cx,cy), 3, (255,0,255), cv2.FILLED)
             h, w, c = img.shape
             x = int(x / len(handLms.landmark) * w)
             y = int(y / len(handLms.landmark) * h)
             cv2.circle(img, (x,y), 10, (255, 0, 0), cv2.FILLED)
             
 
-            # mpDraw.draw_landmarks(img, handLms, mpHands.HAND_CONNECTIONS)
+            mpDraw.draw_landmarks(img, handLms, mpHands.HAND_CONNECTIONS)
 
     cTime = time.time()
     fps = 1/(cTime-pTime)
