@@ -2,3 +2,4 @@ rpi_hardware_pwm
 opencv-contrib-python
 protobuf==3.20
 mediapipe
+adafruit-circuitpython-servokit

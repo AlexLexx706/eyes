@@ -4,23 +4,9 @@ import RPi.GPIO as GPIO
 import cv2
 from pygame import mixer
 from adafruit_servokit import ServoKit
-
-
-servos_kit = ServoKit(channels=16)
-
-#Instantiate mixer
-mixer.init()
-#Load audio file
-mixer.music.load('output.wav')
-#Set preferred volume
-mixer.music.set_volume(0.2)
-
-
-
-faceCascade = cv2.CascadeClassifier('./data/haarcascade_frontalface_alt.xml')
-cap = cv2.VideoCapture(0)
-cap.set(3,640) # set Width
-cap.set(4,480) # set Height
+import math
+from multiprocessing import Process, Queue
+import queue
 
 # Pin Definitons:
 LEFT_LED_PIN = 17
@@ -62,24 +48,91 @@ class Led:
                 GPIO.output(self.__pin, GPIO.HIGH)
                 self.__state = 1
 class Servo:
-    def __init__(self, servo_id, program, period) -> None:
+    def __init__(self, servos_kit, servo_id, program, period) -> None:
         self.__program = program
         self.__period = period
         self.__id = servo_id
 
         self.__start_time = time.time()
         self.__prog_index = 0
+        self.__servos_kit = servos_kit
         servos_kit.servo[self.__id].angle = program[0]
 
     def update(self, cur_time=time.time()):
         if cur_time >= self.__start_time + self.__period:
             self.__start_time = cur_time - (cur_time - self.__start_time) % self.__period
             self.__prog_index =  (self.__prog_index + 1) % len(self.__program)
-            servos_kit.servo[self.__id].angle = self.__program[self.__prog_index]
+            self.__servos_kit.servo[self.__id].angle = self.__program[self.__prog_index]
+
+
+class ServoSmooth:
+    def __init__(self, servos_kit, servo_id, period, _min, _max) -> None:
+        self.__period = period
+        self.__id = servo_id
+        self.__min = _min
+        self.__max = _max
+        self.__start_time = time.time()
+        self.__servos_kit = servos_kit
+        self.__servos_kit.servo[self.__id].angle = self.__min
+
+    def update(self, cur_time=time.time()):
+        val = (math.cos((cur_time - self.__start_time) / self.__period * math.pi * 2) + 1) / 2.
+        self.__servos_kit.servo[self.__id].angle = int((self.__max - self.__min) * val + self.__min)
+
+
+def camera_and_sound(exit_queue):
+    #Instantiate mixer
+    mixer.init()
+    #Load audio file
+    mixer.music.load('hi.wav')
+    #Set preferred volume
+    mixer.music.set_volume(0.2)
+
+    # faceCascade = cv2.CascadeClassifier('./data/haarcascade_frontalface_alt.xml')
+
+    modelFile = "models/res10_300x300_ssd_iter_140000_fp16.caffemodel"
+    configFile = "models/deploy.prototxt"
+    net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    conf_threshold=0.7
+
+
+    cap = cv2.VideoCapture(0)
+    cap.set(3,640) # set Width
+    cap.set(4,480) # set Height
+
+    while 1:
+        try:
+            exit_queue.get(block=False)
+            return
+        except queue.Empty:
+            pass
+
+        ret, frame = cap.read()
+
+        frameHeight = frame.shape[0]
+        frameWidth = frame.shape[1]
+        blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], False, False,)
+        net.setInput(blob)
+        detections = net.forward()
+
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
+            if confidence > conf_threshold:
+                x1 = int(detections[0, 0, i, 3] * frameWidth)
+                y1 = int(detections[0, 0, i, 4] * frameHeight)
+                x2 = int(detections[0, 0, i, 5] * frameWidth)
+                y2 = int(detections[0, 0, i, 6] * frameHeight)
+
+                print(f"x:{(x1 + x2) / 2.} y:{(y1 + y2) / 2.}")
+                if not mixer.music.get_busy():
+                    mixer.music.play()
 
 def main():
     """_summary_
     """
+    servos_kit = ServoKit(channels=16)
 
     GPIO.setmode(GPIO.BCM)
 
@@ -88,31 +141,17 @@ def main():
     GPIO.setup(TOP_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(BOTTOM_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    v_eyes_servo = Servo(SERVO_EYES_VERTICAL, [30, 110, 180, 110], 0.5)
-    h_eyes_servo = Servo(SERVO_EYES_HORIZONTAL, [40, 100, 160], 0.2)
+    v_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_VERTICAL, 3, 30, 180)
+    h_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_HORIZONTAL, 4, 40, 160)
 
     print("Here we go! Press CTRL+C to exit")
     play = 0
+    exit_queue = Queue()
+    camera_and_sound_proc = Process(target=camera_and_sound, args=(exit_queue,))
+    camera_and_sound_proc.start()
 
     try:
         while 1:
-            ret, img = cap.read()
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = faceCascade.detectMultiScale(
-                gray,
-                scaleFactor=1.2,
-                minNeighbors=1,
-                minSize=(100,100)
-            )
-            for (x,y,w,h) in faces:
-                print(x,y)
-                if not mixer.music.get_busy():
-                    mixer.music.play()
-                    
-                cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
-                roi_gray = gray[y:y+h, x:x+w]
-                roi_color = img[y:y+h, x:x+w]
-
             cur_time = time.time()
             left_led_pin.update(cur_time)
             right_led_pin.update(cur_time)
@@ -122,22 +161,21 @@ def main():
             top_btn_state = GPIO.input(TOP_BUTTON)
             bottom_btn_state = GPIO.input(BOTTOM_BUTTON)
 
-            print(f'top_btn:{top_btn_state} '
-                  f'bottom_btn:{bottom_btn_state}')
-            
             # move up 
             if bottom_btn_state:
                 servos_kit.continuous_servo[15].throttle = 0.3 # up
             # move down
             elif top_btn_state:
                 servos_kit.continuous_servo[15].throttle = -0.1 # down
-            print(f't:{top_btn_state} b:{bottom_btn_state}')
 
-            time.sleep(0.1)
+            # print(f't:{top_btn_state} b:{bottom_btn_state}')
+
+            time.sleep(0.01)
     except KeyboardInterrupt:  # If CTRL+C is pressed, exit cleanly:
         # pwm.stop() # stop PWM
         GPIO.cleanup()  # cleanup all GPIO
-
+        exit_queue.put(1)
+        camera_and_sound_proc.join()
 
 if __name__ == "__main__":
     main()
