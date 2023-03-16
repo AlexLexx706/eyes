@@ -1,33 +1,3 @@
-#    Copyright (c) 2022
-#    Author      : Bruno Capuano
-#    Create Time : 2022 Feb
-#    Change Log  :
-#    - Open a camera feed from a local webcam and analyze each frame to detect faces using DNN
-#    - When a face is detected, the app will blur the face zone
-#    - Download model and prototxt from https://github.com/spmallick/learnopencv/tree/master/FaceDetectionComparison/models
-#    - Press [D] to start/stop face detection
-#    - Press [Q] to quit the app
-#
-#    The MIT License (MIT)
-#
-#    Permission is hereby granted, free of charge, to any person obtaining a copy
-#    of this software and associated documentation files (the "Software"), to deal
-#    in the Software without restriction, including without limitation the rights
-#    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#    copies of the Software, and to permit persons to whom the Software is
-#    furnished to do so, subject to the following conditions:
-#
-#    The above copyright notice and this permission notice shall be included in
-#    all copies or substantial portions of the Software.
-#
-#    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#    THE SOFTWARE.
-
 import cv2
 import time
 
@@ -58,7 +28,7 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.7):
             y2 = int(detections[0, 0, i, 6] * frameHeight)
             bboxes.append([x1, y1, x2, y2])
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), int(round(frameHeight / 150)), 8,)
-            
+
             top=x1
             right=y1
             bottom=x2-x1
@@ -85,6 +55,7 @@ while True:
     try:
         _, frameOrig = video_capture.read()
         frame = cv2.resize(frameOrig, (640, 480))
+        #frame = cv2.resize(frameOrig, (320, 240))
 
         if(detectionEnabled == True):
             outOpencvDnn, bboxes = detectFaceOpenCVDnn(net, frame)
@@ -102,7 +73,7 @@ while True:
         pass
 
     # key controller
-    key = cv2.waitKey(1) & 0xFF    
+    key = cv2.waitKey(1) & 0xFF
     if key == ord("d"):
         detectionEnabled = not detectionEnabled
 
