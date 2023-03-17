@@ -9,6 +9,8 @@ from multiprocessing import Process, Queue
 import queue
 import logging
 import curses
+import mediapipe as mp
+
 
 
 LOG = logging.getLogger(__name__)
@@ -86,24 +88,16 @@ class ServoSmooth:
 
 
 def camera_and_sound(exit_queue, pos_queue):
-    #Instantiate mixer
-    mixer.init()
-    #Load audio file
-    mixer.music.load('hi.wav')
-    #Set preferred volume
-    mixer.music.set_volume(0.2)
-
-    model_file = "models/res10_300x300_ssd_iter_140000_fp16.caffemodel"
-    config_file = "models/deploy.prototxt"
-
-    net = cv2.dnn.readNetFromCaffe(config_file, model_file)
-    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-    conf_threshold=0.7
-
+    faceCascade = cv2.CascadeClassifier('./data/haarcascades/haarcascade_frontalface_alt.xml')
     cap = cv2.VideoCapture(0)
     cap.set(3,640) # set Width
     cap.set(4,480) # set Height
+    
+    mpHands = mp.solutions.hands
+    hands = mpHands.Hands(static_image_mode=False,
+                        max_num_hands=2,
+                        min_detection_confidence=0.5,
+                        min_tracking_confidence=0.5)
 
     while 1:
         try:
@@ -113,28 +107,22 @@ def camera_and_sound(exit_queue, pos_queue):
             pass
 
         ret, frame = cap.read()
+        imgRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(imgRGB)
+        if results.multi_hand_landmarks:
+            for handLms in results.multi_hand_landmarks[:1]:
+                x = 0.
+                y = 0.
+                for id, lm in enumerate(handLms.landmark):
+                    h, w, c = frame.shape
+                    cx, cy = int(lm.x *w), int(lm.y*h)
+                    x += lm.x
+                    y += lm.y
+                h, w, c = frame.shape
+                x = int(x / len(handLms.landmark) * w)
+                y = int(y / len(handLms.landmark) * h)
+                pos_queue.put_nowait((x, y))
 
-        frameHeight = frame.shape[0]
-        frameWidth = frame.shape[1]
-        blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], False, False,)
-        net.setInput(blob)
-        detections = net.forward()
-
-        for i in range(detections.shape[2]):
-            confidence = detections[0, 0, i, 2]
-            if confidence > conf_threshold:
-                x1 = int(detections[0, 0, i, 3] * frameWidth)
-                y1 = int(detections[0, 0, i, 4] * frameHeight)
-                x2 = int(detections[0, 0, i, 5] * frameWidth)
-                y2 = int(detections[0, 0, i, 6] * frameHeight)
-                pos = ((x1 + x2) / 2., (y1 + y2) / 2.)
-                try:
-                    pos_queue.put_nowait(pos)
-                except queue.Full:
-                    LOG.warning('pos queue is full!!')
-                # print(f"xy:{pos}")
-                if not mixer.music.get_busy():
-                    mixer.music.play()
 
 def main():
     """_summary_
@@ -212,8 +200,8 @@ def main():
                 pass
             k_x = (640 - cur_pos[0]) / 640
             k_y = (cur_pos[1]) / 480
-            v_angle = int((170 - 40) * k_x + 40)
-            h_angle = int((144 - 70) * k_y + 70)
+            v_angle = int((180 - 30) * k_x + 30)
+            h_angle = int((160 - 60) * k_y + 60)
             servos_kit.servo[0].angle = v_angle
             servos_kit.servo[1].angle = h_angle
 
