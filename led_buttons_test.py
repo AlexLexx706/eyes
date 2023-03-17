@@ -8,6 +8,8 @@ import math
 from multiprocessing import Process, Queue
 import queue
 import logging
+import curses
+
 
 LOG = logging.getLogger(__name__)
 
@@ -146,8 +148,8 @@ def main():
     GPIO.setup(TOP_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(BOTTOM_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-    v_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_VERTICAL, 3, 30, 180)
-    h_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_HORIZONTAL, 4, 40, 160)
+    v_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_VERTICAL, 10, 30, 180)
+    h_eyes_servo = ServoSmooth(servos_kit, SERVO_EYES_HORIZONTAL, 10, 40, 160)
 
     print("Here we go! Press CTRL+C to exit")
     exit_queue = Queue()
@@ -156,14 +158,41 @@ def main():
     camera_and_sound_proc.start()
 
     cur_pos = (640/2, 480/2)
+    
+    # inittialization curses 
+    # screen = curses.initscr()
+    # curses.noecho()
+    # curses.cbreak()
+    # screen.keypad(True)
+    # screen.nodelay(True)
+    # screen.leaveok(True)
+    # screen.erase()
+    
+    vertical_angle = 100
+    hirizontal_angle = 100
 
     try:
         while 1:
+            # char = screen.getch()
+            # if char == curses.KEY_RIGHT:
+            #     vertical_angle += 1
+            #     vertical_angle = vertical_angle if vertical_angle <= 180 else 180
+            # elif char == curses.KEY_LEFT:
+            #     vertical_angle -= 1
+            #     vertical_angle = vertical_angle if vertical_angle >= 0 else 0
+            # elif char == curses.KEY_UP:
+            #     hirizontal_angle += 1
+            #     hirizontal_angle = hirizontal_angle if hirizontal_angle <= 180 else 180
+            # elif char == curses.KEY_DOWN:
+            #     hirizontal_angle -= 1
+            #     hirizontal_angle = hirizontal_angle if hirizontal_angle >= 0 else 0
+
             cur_time = time.time()
             left_led_pin.update(cur_time)
             right_led_pin.update(cur_time)
-            v_eyes_servo.update(cur_time)
-            h_eyes_servo.update(cur_time)
+
+            # v_eyes_servo.update(cur_time)
+            # h_eyes_servo.update(cur_time)
 
             top_btn_state = GPIO.input(TOP_BUTTON)
             bottom_btn_state = GPIO.input(BOTTOM_BUTTON)
@@ -181,7 +210,17 @@ def main():
                 cur_pos = pos
             except queue.Empty:
                 pass
-            print(cur_pos)
+            k_x = (640 - cur_pos[0]) / 640
+            k_y = (cur_pos[1]) / 480
+            v_angle = int((170 - 40) * k_x + 40)
+            h_angle = int((144 - 70) * k_y + 70)
+            servos_kit.servo[0].angle = v_angle
+            servos_kit.servo[1].angle = h_angle
+
+            # print(f"v_angle:{v_angle:3}, h_angle:{h_angle:3}")
+            #print(f'x:{cur_pos[0]:4} y:{cur_pos[1]:4}')
+            # screen.addstr(0, 1, f'v:{vertical_angle:4} h:{hirizontal_angle:4}')
+
             time.sleep(0.01)
     except KeyboardInterrupt:  # If CTRL+C is pressed, exit cleanly:
         # pwm.stop() # stop PWM
