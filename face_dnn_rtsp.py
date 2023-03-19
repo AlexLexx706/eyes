@@ -1,6 +1,8 @@
 import cv2
 import time
 import os
+import socket
+import pickle
 
 RTSP_URL = 'rtsp://192.168.1.4:8554/unicast'
 os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;udp'
@@ -8,14 +10,18 @@ os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;udp'
 video_capture = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
 time.sleep(2)
 
+UDP_IP = "192.168.1.255"
+UDP_PORT = 5005
+MESSAGE = (1, 3.32)
+
+
 # -----------------------------------------------
 # Face Detection using DNN Net
 # -----------------------------------------------
 # detect faces using a DNN model 
 # download model and prototxt from https://github.com/spmallick/learnopencv/tree/master/FaceDetectionComparison/models
 
-def detectFaceOpenCVDnn(net, frame, conf_threshold=0.7):
-    
+def detectFaceOpenCVDnn(net, frame, sock, conf_threshold=0.7):
     frameHeight = frame.shape[0]
     frameWidth = frame.shape[1]
     blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123], False, False,)
@@ -37,12 +43,14 @@ def detectFaceOpenCVDnn(net, frame, conf_threshold=0.7):
             right=y1
             bottom=x2-x1
             left=y2-y1
+            
+            sock.sendto(pickle.dumps((x1, y1)), (UDP_IP, UDP_PORT))
+
 
             #  blurry rectangle to the detected face
             # face = frame[right:right+left, top:top+bottom]
             # face = cv2.GaussianBlur(face,(23, 23), 30)
             # frame[right:right+face.shape[0], top:top+face.shape[1]] = face
-
     return frame, bboxes
 
 # load face detection model
@@ -55,34 +63,36 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 detectionEnabled = True
 p_time = time.time()
 
-while True:
-    try:
-        _, frameOrig = video_capture.read()
-        frame = cv2.resize(frameOrig, (640, 480))
-        #frame = cv2.resize(frameOrig, (320, 240))
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    while True:
+        try:
+            _, frameOrig = video_capture.read()
+            frame = cv2.resize(frameOrig, (640, 480))
+            #frame = cv2.resize(frameOrig, (320, 240))
 
-        if(detectionEnabled == True):
-            outOpencvDnn, bboxes = detectFaceOpenCVDnn(net, frame)
+            if(detectionEnabled == True):
+                outOpencvDnn, bboxes = detectFaceOpenCVDnn(net, frame, sock)
 
 
-        c_time = time.time()
-        fps = 1 / (c_time - p_time)
-        p_time = c_time
+            c_time = time.time()
+            fps = 1 / (c_time - p_time)
+            p_time = c_time
 
-        cv2.putText(frame, str(int(fps)), (10,70), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 3)
-        cv2.imshow('@ElBruno - Face Blur usuing DNN', frame)
+            cv2.putText(frame, str(int(fps)), (10,70), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 3)
+            cv2.imshow('@ElBruno - Face Blur usuing DNN', frame)
 
-    except Exception as e:
-        print(f'exc: {e}')
-        pass
+        except Exception as e:
+            print(f'exc: {e}')
+            pass
 
-    # key controller
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord("d"):
-        detectionEnabled = not detectionEnabled
+        # key controller
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("d"):
+            detectionEnabled = not detectionEnabled
 
-    if key == ord("q"):
-        break
+        if key == ord("q"):
+            break
 
-video_capture.release()
-cv2.destroyAllWindows()
+    video_capture.release()
+    cv2.destroyAllWindows()
