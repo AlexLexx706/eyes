@@ -1,4 +1,3 @@
-# External module imports
 import time
 import RPi.GPIO as GPIO
 from adafruit_servokit import ServoKit
@@ -15,11 +14,7 @@ def main():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(TOP_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(BOTTOM_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-    # servos_kit.continuous_servo[15].throttle = -0.1 # down
-    servos_kit.continuous_servo[15].throttle = 0.3 # up
-    
-    
+    servos_kit.continuous_servo[2].throttle = 0.3  
 
     try:
         while 1:
@@ -28,16 +23,16 @@ def main():
             
             # move up 
             if bottom_btn_state:
-                servos_kit.continuous_servo[15].throttle = 0.3 # up
+                servos_kit.continuous_servo[2].throttle = 0.3
             # move down
             elif top_btn_state:
-                servos_kit.continuous_servo[15].throttle = -0.1 # down
+                servos_kit.continuous_servo[2].throttle = -0.1
             print(f't:{top_btn_state} b:{bottom_btn_state}')
 
             time.sleep(0.01)
-    except KeyboardInterrupt:  # If CTRL+C is pressed, exit cleanly:
-        # pwm.stop() # stop PWM
-        GPIO.cleanup()  # cleanup all GPIO
+    except KeyboardInterrupt:
+        servos_kit.continuous_servo[2].throttle = 0
+        GPIO.cleanup()
 
 
 if __name__ == "__main__":
