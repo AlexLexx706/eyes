@@ -20,8 +20,6 @@ def main():
     GPIO.setup(BOTTOM_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(PIR, GPIO.IN) #Setup GPIO pin PIR as input
     time.sleep(2) #Give sensor time to startup
-    servos_kit._pca.channels[4].duty_cycle = 0xff
-    servos_kit._pca.channels[5].duty_cycle = 0x6ff
 
     wave_obj = sa.WaveObject.from_wave_file(sound_1_path)
 
@@ -31,6 +29,8 @@ def main():
                 break
             time.sleep(0.1)
 
+        servos_kit._pca.channels[4].duty_cycle = 0xff
+        servos_kit._pca.channels[5].duty_cycle = 0x6ff
         servos_kit.continuous_servo[2].throttle = -0.1
         servos_kit.servo[0].angle = 105
         bottom_btn_state = 0
@@ -79,6 +79,15 @@ def main():
             bottom_btn_state = GPIO.input(BOTTOM_BUTTON)
         servos_kit.continuous_servo[2].throttle = 0
         play_obj.stop()
+        
+        #eyes off
+        servos_kit._pca.channels[4].duty_cycle = 0x0
+        servos_kit._pca.channels[5].duty_cycle = 0x0
+
+        #all servo off
+        servos_kit._pca.channels[0].duty_cycle = 0
+        servos_kit._pca.channels[1].duty_cycle = 0
+        servos_kit._pca.channels[2].duty_cycle = 0
 
         #     # move up
         #     if bottom_btn_state:
