@@ -5,3 +5,4 @@ mediapipe
 adafruit-circuitpython-servokit
 RPi.GPIO
 simpleaudio
+serial
