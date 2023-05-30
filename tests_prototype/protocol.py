@@ -196,7 +196,7 @@ class Protocol:
     def _read_serial(self):
         while not self._stop_flag:
             res = self._serial.read(3)
-            print(res)
+            print(res, end='')
             # if res:
             #     print(f'res:{res}, len:{len(res)}')
             #     self._state = int.from_bytes(res[:2], 'little')
