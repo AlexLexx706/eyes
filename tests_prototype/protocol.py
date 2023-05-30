@@ -196,14 +196,15 @@ class Protocol:
     def _read_serial(self):
         while not self._stop_flag:
             res = self._serial.read(3)
-            if res:
-                print(f'res:{res}, len:{len(res)}')
-                self._state = int.from_bytes(res[:2], 'little')
-                print(bin(self._state))
+            print(res)
+            # if res:
+            #     print(f'res:{res}, len:{len(res)}')
+            #     self._state = int.from_bytes(res[:2], 'little')
+            #     print(bin(self._state))
 
 
 protocol = Protocol()
-protocol.start(port='/dev/ttyUSB2')
+protocol.start(port='/dev/ttyUSB0')
 time.sleep(1)
 protocol.open_door()
 time.sleep(1)
