@@ -17,19 +17,19 @@ class ButtonState(ctypes.Structure):
     """Describe buttos states
     """
     _fields_ = (
-        ("button_0", ctypes.c_int16, 1),
-        ("button_1", ctypes.c_int16, 1),
-        ("button_2", ctypes.c_int16, 1),
-        ("button_3", ctypes.c_int16, 1),
-        ("button_4", ctypes.c_int16, 1),
-        ("button_5", ctypes.c_int16, 1),
-        ("button_6", ctypes.c_int16, 1),
-        ("button_7", ctypes.c_int16, 1),
-        ("button_8", ctypes.c_int16, 1),
-        ("button_end_left", ctypes.c_int16, 1),
-        ("button_end_right", ctypes.c_int16, 1),
-        ("finger_state", ctypes.c_int16, 2),
-        ("door_state", ctypes.c_int16, 1),
+        ("button_0", ctypes.c_uint16, 1),
+        ("button_1", ctypes.c_uint16, 1),
+        ("button_2", ctypes.c_uint16, 1),
+        ("button_3", ctypes.c_uint16, 1),
+        ("button_4", ctypes.c_uint16, 1),
+        ("button_5", ctypes.c_uint16, 1),
+        ("button_6", ctypes.c_uint16, 1),
+        ("button_7", ctypes.c_uint16, 1),
+        ("button_8", ctypes.c_uint16, 1),
+        ("button_end_left", ctypes.c_uint16, 1),
+        ("button_end_right", ctypes.c_uint16, 1),
+        ("finger_state", ctypes.c_uint16, 2),
+        ("door_state", ctypes.c_uint16, 1),
     )
     _pack_ = 1
 
@@ -208,21 +208,21 @@ class Protocol:
                         self._state = ButtonState.from_buffer_copy(
                             data[start:end])
 
-                        # print("0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d 8:%d e_l:%d e_r:%d f_s:%d d_s:%d" % (
-                        #     self._state.button_0,
-                        #     self._state.button_1,
-                        #     self._state.button_2,
-                        #     self._state.button_3,
-                        #     self._state.button_4,
-                        #     self._state.button_5,
-                        #     self._state.button_6,
-                        #     self._state.button_7,
-                        #     self._state.button_8,
-                        #     self._state.button_end_left,
-                        #     self._state.button_end_right,
-                        #     self._state.finger_state,
-                        #     self._state.door_state,
-                        # ))
+                        print("0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d 8:%d e_l:%d e_r:%d f_s:%d d_s:%d" % (
+                            self._state.button_0,
+                            self._state.button_1,
+                            self._state.button_2,
+                            self._state.button_3,
+                            self._state.button_4,
+                            self._state.button_5,
+                            self._state.button_6,
+                            self._state.button_7,
+                            self._state.button_8,
+                            self._state.button_end_left,
+                            self._state.button_end_right,
+                            self._state.finger_state,
+                            self._state.door_state,
+                        ))
                     # cut data
                     data = data[end:]
 
