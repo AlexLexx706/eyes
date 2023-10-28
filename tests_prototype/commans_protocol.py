@@ -208,21 +208,21 @@ class Protocol:
                         self._state = ButtonState.from_buffer_copy(
                             data[start:end])
 
-                        print("0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d 8:%d e_l:%d e_r:%d f_s:%d d_s:%d" % (
-                            self._state.button_0,
-                            self._state.button_1,
-                            self._state.button_2,
-                            self._state.button_3,
-                            self._state.button_4,
-                            self._state.button_5,
-                            self._state.button_6,
-                            self._state.button_7,
-                            self._state.button_8,
-                            self._state.button_end_left,
-                            self._state.button_end_right,
-                            self._state.finger_state,
-                            self._state.door_state,
-                        ))
+                        # print("0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d 8:%d e_l:%d e_r:%d f_s:%d d_s:%d" % (
+                        #     self._state.button_0,
+                        #     self._state.button_1,
+                        #     self._state.button_2,
+                        #     self._state.button_3,
+                        #     self._state.button_4,
+                        #     self._state.button_5,
+                        #     self._state.button_6,
+                        #     self._state.button_7,
+                        #     self._state.button_8,
+                        #     self._state.button_end_left,
+                        #     self._state.button_end_right,
+                        #     self._state.finger_state,
+                        #     self._state.door_state,
+                        # ))
                     # cut data
                     data = data[end:]
 
