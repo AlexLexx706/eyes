@@ -169,33 +169,55 @@ class Protocol:
             line = self._serial.readline()
             data += line
             # only for debug
-            print(repr(line))
+            # print(repr(line))
             match = self._re_header.search(data)
 
             # header decoded
             if match:
                 msg_id = match.group(1)
                 msg_len = int(match.group(2), 16)
-
+                start = match.end(2)
+                cur_message_len = len(data) - start
                 # all data present
-                if len(data) - match.start(4) >= msg_len:
-                    start = match.start(4)
+                # print(f"msg_id:{msg_id} msg_len:{msg_len} cur_message_len:{cur_message_len}")
+
+                if cur_message_len >= msg_len:
                     end = start + msg_len
+                    # print("sasamba 1")
                     # commands responce
-                    if msg_id is ('RE', 'ER'):
+                    if msg_id in (b'RE', b'ER'):
+                        # print("sasamba 2")
+                        start = match.start(4)
                         msg_prefix = match.group(3)
                         # riase contition for waiter
                         with self._cmd_condition:
                             msg = data[start:end]
-                            self._last_re.id = msg_id
-                            self._last_re.prefix = msg_prefix
-                            self._last_re.msg = msg
+                            self._last_re.id = msg_id.decode()
+                            self._last_re.prefix = int(msg_prefix)
+                            self._last_re.msg = msg.decode()
                             self._cmd_condition.notify()
                     # status message
-                    elif msg_id == 'BS':
+                    elif msg_id == b'BS':
+                        # print("sasamba 3")
                         # update state
                         self._state = ButtonState.from_buffer_copy(
                             data[start:end])
+
+                        # print("0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d 8:%d e_l:%d e_r:%d f_s:%d d_s:%d" % (
+                        #     self._state.button_0,
+                        #     self._state.button_1,
+                        #     self._state.button_2,
+                        #     self._state.button_3,
+                        #     self._state.button_4,
+                        #     self._state.button_5,
+                        #     self._state.button_6,
+                        #     self._state.button_7,
+                        #     self._state.button_8,
+                        #     self._state.button_end_left,
+                        #     self._state.button_end_right,
+                        #     self._state.finger_state,
+                        #     self._state.door_state,
+                        # ))
                     # cut data
                     data = data[end:]
 
@@ -224,7 +246,7 @@ if __name__ == '__main__':
     protocol.move_finger(100)
     time.sleep(2)
     protocol.move_finger(2000)
-    time.sleep(2)
+    time.sleep(2000)
     protocol.stop_state_stream()
     time.sleep(2)
     protocol.stop()
