@@ -66,6 +66,10 @@ class Protocol:
         self._cmd_condition = threading.Condition()
         self._last_re = SimpleNamespace(id='', prefix='', msg='')
 
+    @property
+    def state(self):
+        return self._state
+
     def start(self, port: str = '/dev/ttyUSB0', speed: int = 115200):
         """start protocol
         Args:
@@ -196,6 +200,7 @@ class Protocol:
                             self._last_re.prefix = int(msg_prefix)
                             self._last_re.msg = msg.decode()
                             self._cmd_condition.notify()
+                            print(data[match.start(0):end].decode())
                     # status message
                     elif msg_id == b'BS':
                         # print("sasamba 3")
@@ -229,23 +234,24 @@ class Protocol:
 if __name__ == '__main__':
     protocol = Protocol()
     protocol.start(port='/dev/ttyUSB0')
-    time.sleep(5)
+    time.sleep(10)
     protocol.set_mode(1)
     protocol.activate_state_stream()
-    time.sleep(10)
+    time.sleep(1)
     protocol.open_door()
     time.sleep(1)
     protocol.close_door()
     time.sleep(1)
     protocol.set_finger_state(1)
-    time.sleep(2)
+    time.sleep(1)
     protocol.set_finger_state(2)
-    time.sleep(2)
+    time.sleep(1)
     protocol.set_finger_state(0)
-    time.sleep(2)
+    time.sleep(1)
     protocol.move_finger(100)
-    time.sleep(2)
+    time.sleep(1)
     protocol.move_finger(2000)
+    print(f"state:{protocol.state}")
     time.sleep(2000)
     protocol.stop_state_stream()
     time.sleep(2)
